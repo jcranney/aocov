@@ -81,7 +81,7 @@ class Distances(BaseModel):
         expect a numpy array to be evaluated element-wise.
         Note, if `function` expects a tensor, then try `_eval()` instead."""
         values = function(self._udistance.detach().cpu().numpy())
-        output = values[self._uindices]
+        output = values[self._uindices.detach().cpu().numpy()]
         return output
 
     def _eval(self, function):
