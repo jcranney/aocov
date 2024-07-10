@@ -15,6 +15,8 @@ class VonKarman(BaseModel):
         b1 = (2**(-5/6)) * sp.gamma(11/6) / (torch.pi**(8./3))
         b2 = ((24. / 5) * sp.gamma(6. / 5)) ** (5. / 6)
         self._vk_coeff = b1*b2
+        # try to put an array on the device to make sure it's valid
+        torch.zeros([1],device=self.device)
 
     def _bessel_kv(self, alpha: float, x: torch.Tensor):
         """As of July 2024, pytorch does not implement the modified bessel
