@@ -1,6 +1,6 @@
 Efficient covariance computations for Adaptive Optics in Python
 
-## Introduction
+## Motivation
 In Adaptive Optics control/estimation/simulations, it's common to find yourself performing an operation similar to:
 ```python
 import numpy as np
@@ -67,6 +67,14 @@ cov = aocov.phase_covariance_xyxy(xx, yy, xx, yy, r0, L0, device="cuda:0")
 ```
 
 Note that the last option is likely to perform the fastest, see [performance comparison](#performance) below.
+
+## Installation
+Simply clone and install this git repo using pip.
+```bash
+git clone git@github.com:jcranney/aocov
+cd aocov
+pip install -e .
+```
 
 ## Performance
 This repo comes with a performance test script `perf/perf_test.py`, you can tweak it to match your system dimensions. Note that $n$ is the number of samples in each dimension for the grid, so assuming a square grid, the covariance matrix will have $n^4$ elements, i.e.,:
