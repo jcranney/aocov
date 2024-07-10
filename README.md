@@ -69,3 +69,41 @@ cov = aocov.phase_covariance_xyxy(xx, yy, xx, yy, r0, L0, device="cuda:0")
 Note that the last option is likely to perform the fastest, see [performance comparison](#performance) below.
 
 ## Performance
+This repo comes with a performance test script `perf/perf_test.py`, you can tweak it to match your system dimensions. Note that $n$ is the number of samples in each dimension for the grid, so assuming a square grid, the covariance matrix will have $n^4$ elements, i.e.,:
+
+| n    | elements   |
+|------|----------|
+|   16 | 65,536      |
+|   32 | 1,048,576      |
+|   64 | 16,777,216      |
+|   128 | 268,435,456   |
+
+Using the default parameters on a system 40 cores and a Tesla V100 32GB GPU, I measured the following:
+
+| n    | device   | experiment                     | sec/matrix |
+|------|----------|--------------------------------|------------|
+|   16 | cpu      | no pytorch                     |  2.880e-02 |
+|   16 | cpu      | rr in numpy, rest in aocov     |  1.222e-02 |
+|   16 | cpu      | all in aocov                   |  1.435e-02 |
+|   16 | cuda:0   | rr in numpy, rest in aocov     |  1.110e+00 |
+|   16 | cuda:0   | all in aocov                   |  2.640e-03 |
+|   32 | cpu      | no pytorch                     |  4.535e-01 |
+|   32 | cpu      | rr in numpy, rest in aocov     |  8.379e-02 |
+|   32 | cpu      | all in aocov                   |  7.282e-02 |
+|   32 | cuda:0   | rr in numpy, rest in aocov     |  8.874e-03 |
+|   32 | cuda:0   | all in aocov                   |  2.020e-03 |
+|   64 | cpu      | no pytorch                     |  7.233e+00 |
+|   64 | cpu      | rr in numpy, rest in aocov     |  1.269e+00 |
+|   64 | cpu      | all in aocov                   |  1.159e+00 |
+|   64 | cuda:0   | rr in numpy, rest in aocov     |  1.777e-01 |
+|   64 | cuda:0   | all in aocov                   |  2.087e-02 |
+|  128 | cpu      | no pytorch                     |  1.143e+02 |
+|  128 | cpu      | rr in numpy, rest in aocov     |  2.218e+01 |
+|  128 | cpu      | all in aocov                   |  2.056e+01 |
+|  128 | cuda:0   | rr in numpy, rest in aocov     |  2.560e+00 |
+|  128 | cuda:0   | all in aocov                   |  3.152e-01 |
+
+
+For $n=2^7=128$, the covariance matrix has $2^{28}=268\, 435\, 456$ elements. In that case, with a decent GPU, you can produce a covariance matrix $362$ times faster. In the case above, we go from almost 2 minutes to less than 0.5 seconds.
+
+![results](perf/performance.png)

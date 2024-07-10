@@ -6,6 +6,7 @@ import timeit
 if __name__ == "__main__":
     r0 = 0.15
     L0 = 25.0
+    ntests = 10
 
     def print_perf(n, dev, exp, r):
         print(f"| {n:4d} | {dev:8s} | {exp:30s} | {r:10.3e} |")
@@ -27,26 +28,26 @@ if __name__ == "__main__":
             rr = ((xx[:, None]-xx[None, :])**2 + (yy[:, None]-yy[None, :])**2)**0.5
             cov = aotools.phase_covariance(rr,r0,L0)
             return cov
-        r = timeit.timeit(func, number=10)
+        r = timeit.timeit(func, number=ntests)
         exp_str = "no pytorch"
-        print_perf(n,device,exp_str,r)
+        print_perf(n,device,exp_str,r/ntests)
 
         device = "cpu"
         def func():
             rr = ((xx[:, None]-xx[None, :])**2 + (yy[:, None]-yy[None, :])**2)**0.5
             cov = aocov.phase_covariance(rr,r0,L0,device=device)
             return cov    
-        r = timeit.timeit(func, number=10)
+        r = timeit.timeit(func, number=ntests)
         exp_str = "rr in numpy, rest in aocov"
-        print_perf(n,device,exp_str,r)
+        print_perf(n,device,exp_str,r/ntests)
 
         device = "cpu"
         def func():
             cov = aocov.phase_covariance_xyxy(xx,yy,xx,yy,r0,L0,device=device), 
             return cov    
-        r = timeit.timeit(func, number=10)
+        r = timeit.timeit(func, number=ntests)
         exp_str = "all in aocov"
-        print_perf(n,device,exp_str,r)
+        print_perf(n,device,exp_str,r/ntests)
         
         try:
             device = "cuda:0"
@@ -54,9 +55,9 @@ if __name__ == "__main__":
                 rr = ((xx[:, None]-xx[None, :])**2 + (yy[:, None]-yy[None, :])**2)**0.5
                 cov = aocov.phase_covariance(rr,r0,L0,device=device)
                 return cov
-            r = timeit.timeit(func, number=10)
+            r = timeit.timeit(func, number=ntests)
             exp_str = "rr in numpy, rest in aocov"
-            print_perf(n,device,exp_str,r)
+            print_perf(n,device,exp_str,r/ntests)
         except RuntimeError as e:
             pass
             # print("No cuda:0 device found, skipping.")
@@ -66,9 +67,9 @@ if __name__ == "__main__":
             def func():
                 cov = aocov.phase_covariance_xyxy(xx,yy,xx,yy,r0,L0,device=device)
                 return cov
-            r = timeit.timeit(func, number=10)
+            r = timeit.timeit(func, number=ntests)
             exp_str = "all in aocov"
-            print_perf(n,device,exp_str,r)
+            print_perf(n,device,exp_str,r/ntests)
         except RuntimeError as e:
             pass
             #print("No cuda:0 device found, skipping.")
