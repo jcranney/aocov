@@ -49,32 +49,17 @@ class VonKarman(BaseModel):
             L0=L0
         ).detach().cpu().numpy()
 
-
-class Distances(BaseModel):
+class _DistancesGeneric(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    _x_in: torch.Tensor
-    _y_in: torch.Tensor
-    _x_out: torch.Tensor
-    _y_out: torch.Tensor
     device: str = "cpu"
-
-    def __init__(self, x_in, y_in, x_out, y_out, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._x_in = torch.tensor(x_in, device=self.device)
-        self._y_in = torch.tensor(y_in, device=self.device)
-        self._x_out = torch.tensor(x_out, device=self.device)
-        self._y_out = torch.tensor(y_out, device=self.device)
-        self._distance = ((self._x_out[:, None] - self._x_in[None, :])**2 +
-                          (self._y_out[:, None] - self._y_in[None, :])**2)**0.5
-        self._udistance, self._uindices = torch.unique(
-            self._distance,
-            return_inverse=True
-        )
+    _udistance: torch.Tensor = None
+    _uindices: torch.Tensor = None
+    _distance: torch.Tensor = None
 
     @property
     def sparsity(self):
         elements_used = self._udistance.shape[0]
-        full_elements_used = self._x_in.shape[0] * self._y_in.shape[0]
+        full_elements_used = self._distance.ravel().shape[0]
         return elements_used / full_elements_used
 
     def eval(self, function):
@@ -94,6 +79,65 @@ class Distances(BaseModel):
         values = function(self._udistance)
         output = values[self._uindices]
         return output
+
+
+class DistancesXYXY(_DistancesGeneric):
+    _x_in: torch.Tensor
+    _y_in: torch.Tensor
+    _x_out: torch.Tensor
+    _y_out: torch.Tensor
+
+    def __init__(self, x_out, y_out, x_in, y_in, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._x_in = torch.tensor(x_in, device=self.device)
+        self._y_in = torch.tensor(y_in, device=self.device)
+        self._x_out = torch.tensor(x_out, device=self.device)
+        self._y_out = torch.tensor(y_out, device=self.device)
+        self._distance = ((self._x_out[:, None] - self._x_in[None, :])**2 +
+                          (self._y_out[:, None] - self._y_in[None, :])**2)**0.5
+        self._udistance, self._uindices = torch.unique(
+            self._distance,
+            return_inverse=True
+        )
+
+class DistancesRR(_DistancesGeneric):
+    _x_in: torch.Tensor
+    _y_in: torch.Tensor
+    _x_out: torch.Tensor
+    _y_out: torch.Tensor
+
+    def __init__(self, rr, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._distance = torch.tensor(rr, device=self.device)
+        self._udistance, self._uindices = torch.unique(
+            self._distance,
+            return_inverse=True
+        )
+
+
+def phase_covariance(rr: np.ndarray, r0: float, 
+                     L0: float, device: str = "cpu"):
+    dist = DistancesRR(rr, device=device)
+    vkcov = VonKarman(device=device)
+    if device == "cpu":
+        return dist.eval(lambda x : vkcov.vk_cov(x, r0=r0, L0=L0))
+    else:
+        return dist._eval(lambda x : vkcov._vk_cov(x, r0=r0, L0=L0))
+
+
+def phase_covariance_xyxy(
+        x_out: np.ndarray, y_out: np.ndarray, 
+        x_in: np.ndarray, y_in: np.ndarray, 
+        r0: float, L0: float, device: str = "cpu"):
+    dist = DistancesXYXY(
+        x_out=x_out, y_out=y_out,
+        x_in=x_in, y_in=y_in,
+        device=device)
+    vkcov = VonKarman(device=device)
+    if device == "cpu":
+        return dist.eval(lambda x : vkcov.vk_cov(x, r0=r0, L0=L0))
+    else:
+        return dist._eval(lambda x : vkcov._vk_cov(x, r0=r0, L0=L0))
 
 
 def test_vk_cov(device="cpu"):
@@ -129,7 +173,7 @@ def test_distance_uniqueness(device="cpu"):
     x_out, y_out = np.meshgrid(np.arange(2), np.arange(2), indexing="xy")
     x_out = x_out.flatten()
     y_out = y_out.flatten()
-    distances = Distances(x_in, y_in, x_out, y_out, device=device)
+    distances = DistancesXYXY(x_in, y_in, x_out, y_out, device=device)
     assert distances.sparsity == 0.1875
 
 
@@ -145,7 +189,7 @@ def speed_comparison_distances_self(n=40, device="cpu"):
     t1 = time.time()
 
     # use Distance object and VonKarman object
-    distances = Distances(xx, yy, xx, yy, device=device)
+    distances = DistancesXYXY(xx, yy, xx, yy, device=device)
     out = distances.eval(lambda x: cov.vk_cov(x, r0=r0, L0=L0))
     t2 = time.time()
 
@@ -172,7 +216,7 @@ def speed_comparison_distances_other(n=40, device="cpu"):
     t1 = time.time()
 
     # use Distance object and VonKarman object
-    distances = Distances(xx, yy, xx+np.pi, yy+np.exp(1), device=device)
+    distances = DistancesXYXY(xx, yy, xx+np.pi, yy+np.exp(1), device=device)
     out = distances.eval(lambda x: cov.vk_cov(x, r0=r0, L0=L0))
     t2 = time.time()
 
