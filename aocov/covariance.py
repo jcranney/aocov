@@ -16,8 +16,7 @@ class VonKarman(BaseModel):
         b2 = ((24. / 5) * sp.gamma(6. / 5)) ** (5. / 6)
         self._vk_coeff = b1*b2
 
-    @staticmethod
-    def _bessel_kv(alpha: float, x: torch.Tensor):
+    def _bessel_kv(self, alpha: float, x: torch.Tensor):
         """As of July 2024, pytorch does not implement the modified bessel
         function of the second kind with arbitrary real order, e.g.,
         scipy.special.kv(), so we do a very annoying numpy conversion
@@ -26,7 +25,10 @@ class VonKarman(BaseModel):
         stay in pytorch completely - especially important for GPU parallelism.
         """
         y = torch.zeros_like(x)
-        y += torch.tensor(sp.kv(alpha, x.detach().cpu().numpy()))
+        y += torch.tensor(
+            sp.kv(alpha, x.detach().cpu().numpy()), 
+            device=self.device
+        )
         return y
 
     def _vk_cov(self, x: torch.Tensor, *, r0: float, L0: float):
