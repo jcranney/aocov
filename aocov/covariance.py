@@ -40,7 +40,7 @@ class VonKarman(BaseModel):
 
     def vk_cov(self, x: np.ndarray, *, r0: float, L0: float):
         return self._vk_cov(
-            torch.tensor(x),
+            torch.tensor(x, device=self.device),
             r0=r0,
             L0=L0
         ).detach().cpu().numpy()
@@ -92,21 +92,21 @@ class Distances(BaseModel):
         return output
 
 
-def test_vk_cov():
+def test_vk_cov(device="cpu"):
     x = np.array([0.1, 1.1, 10.5])
     r0 = 0.1
     L0 = 25.0
-    cov = VonKarman()
+    cov = VonKarman(device=device)
     y = cov.vk_cov(x, r0=r0, L0=L0)
     y0 = aotools.phase_covariance(x, r0=0.10, L0=25.0)
     assert np.allclose(y, y0)
 
 
-def speed_comparison(n=1000):
+def speed_comparison(n=1000, device="cpu"):
     x = np.random.random(n)
     r0 = 0.1
     L0 = 25.0
-    cov = VonKarman()
+    cov = VonKarman(device=device)
     t1 = time.time()
     y = cov.vk_cov(x, r0=r0, L0=L0)
     t2 = time.time()
@@ -118,19 +118,19 @@ def speed_comparison(n=1000):
     assert np.allclose(y, y0)
 
 
-def test_distance_uniqueness():
+def test_distance_uniqueness(device="cpu"):
     x_in, y_in = np.meshgrid(np.arange(2), np.arange(2), indexing="xy")
     x_in = x_in.flatten()
     y_in = y_in.flatten()
     x_out, y_out = np.meshgrid(np.arange(2), np.arange(2), indexing="xy")
     x_out = x_out.flatten()
     y_out = y_out.flatten()
-    distances = Distances(x_in, y_in, x_out, y_out)
+    distances = Distances(x_in, y_in, x_out, y_out, device=device)
     assert distances.sparsity == 0.1875
 
 
-def speed_comparison_distances_self(n=40):
-    cov = VonKarman()
+def speed_comparison_distances_self(n=40, device="cpu"):
+    cov = VonKarman(device=device)
     r0 = 0.1
     L0 = 25.0
 
@@ -141,7 +141,7 @@ def speed_comparison_distances_self(n=40):
     t1 = time.time()
 
     # use Distance object and VonKarman object
-    distances = Distances(xx, yy, xx, yy)
+    distances = Distances(xx, yy, xx, yy, device=device)
     out = distances.eval(lambda x: cov.vk_cov(x, r0=r0, L0=L0))
     t2 = time.time()
 
@@ -156,8 +156,8 @@ def speed_comparison_distances_self(n=40):
     return out
 
 
-def speed_comparison_distances_other(n=40):
-    cov = VonKarman()
+def speed_comparison_distances_other(n=40, device="cpu"):
+    cov = VonKarman(device=device)
     r0 = 0.1
     L0 = 25.0
 
@@ -168,7 +168,7 @@ def speed_comparison_distances_other(n=40):
     t1 = time.time()
 
     # use Distance object and VonKarman object
-    distances = Distances(xx, yy, xx+np.pi, yy+np.exp(1))
+    distances = Distances(xx, yy, xx+np.pi, yy+np.exp(1), device=device)
     out = distances.eval(lambda x: cov.vk_cov(x, r0=r0, L0=L0))
     t2 = time.time()
 
