@@ -69,11 +69,15 @@ cov = aocov.phase_covariance_xyxy(xx, yy, xx, yy, r0, L0, device="cuda:0")
 Note that the last option is likely to perform the fastest, see [performance comparison](#performance) below. Also, for the time being, PyTorch does not implement the required bessel function (`scipy.special.kv(nu,x)`), so the code makes a single call to the `scipy` function on CPU. If someone makes a torch-friendly version of `kv(nu,x)`, this would further improve the performance of this module - especially on GPU. 
 
 ## Installation
-Simply clone and install this git repo using pip.
+For the latest version, simply clone and install this git repo using pip.
 ```bash
 git clone git@github.com:jcranney/aocov
 cd aocov
 pip install -e .
+```
+If you are happy with a stable version, you can directly pip install:
+```bash
+pip install aocov
 ```
 
 ## Performance
