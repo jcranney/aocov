@@ -114,4 +114,7 @@ Using the default parameters on a system 40 cores and a Tesla V100 32GB GPU, I m
 
 For $n=2^7=128$, the covariance matrix has $2^{28}=268\, 435\, 456$ elements. In that case, with a decent GPU, you can produce a covariance matrix $362$ times faster. In the case above, we go from almost 2 minutes to less than 0.5 seconds.
 
-![results](perf/performance.png)
+<p align="center">
+<img style="width:800px" src="https://raw.githubusercontent.com/jcranney/aocov/main/perf/performance.png"
+        alt="timing performance"/>
+</p>
