@@ -122,7 +122,9 @@ def phase_covariance(rr: np.ndarray, r0: float,
     if device == "cpu":
         return dist.eval(lambda x : vkcov.vk_cov(x, r0=r0, L0=L0))
     else:
-        return dist._eval(lambda x : vkcov._vk_cov(x, r0=r0, L0=L0))
+        return dist._eval(
+            lambda x : vkcov._vk_cov(x, r0=r0, L0=L0)
+        ).detach().cpu().numpy()
 
 
 def phase_covariance_xyxy(
@@ -137,7 +139,9 @@ def phase_covariance_xyxy(
     if device == "cpu":
         return dist.eval(lambda x : vkcov.vk_cov(x, r0=r0, L0=L0))
     else:
-        return dist._eval(lambda x : vkcov._vk_cov(x, r0=r0, L0=L0))
+        return dist._eval(
+            lambda x : vkcov._vk_cov(x, r0=r0, L0=L0)
+        ).detach().cpu().numpy()
 
 
 def test_vk_cov(device="cpu"):
